@@ -1,0 +1,55 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      DB_HOST: db
+      DB_NAME: weather_climate
+      DB_USER: ${DB_USER:-weather_app}
+      DB_PASS: ${DB_PASSWORD:-change_me_before_deployment}
+      WEB_SERVICE_URL: http://web-service:5000
+    depends_on:
+      db:
+        condition: service_healthy
+      web-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: weather_climate
+      MYSQL_USER: ${DB_USER:-weather_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change_me_before_deployment}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change_root_password}
+    volumes:
+      - weather_db_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  web-service:
+    build: ./web-service
+    expose:
+      - "5000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  weather_db_data:
