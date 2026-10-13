@@ -12,11 +12,18 @@ def fetch_wttr(path: str):
     url = "https://wttr.in/" + path + "?format=j1&lang=ru"
     req = Request(url, headers={"User-Agent": "WeatherClimateLab/1.0", "Accept": "application/json"})
     try:
-        with urlopen(req, timeout=12) as response:
+        with urlopen(req, timeout=25) as response:
             return json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
-        return {"error": True, "reason": f"wttr.in вернул HTTP {exc.code}"}, 502
-    except (URLError, TimeoutError, json.JSONDecodeError) as exc:
+        try:
+            detail = exc.read(300).decode("utf-8", errors="replace").strip()
+        except Exception:
+            detail = ""
+        reason = f"wttr.in вернул HTTP {exc.code}"
+        if detail:
+            reason += f": {detail[:200]}"
+        return {"error": True, "reason": reason}, 502
+    except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
         return {"error": True, "reason": f"Погодный сервис недоступен: {exc}"}, 502
 
 

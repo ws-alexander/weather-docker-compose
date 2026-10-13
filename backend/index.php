@@ -25,7 +25,7 @@ try { $pdo = new PDO("mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4", $d
 catch (Throwable $e) { $dbError = 'MySQL не подключена — история будет доступна только в текущем браузере.'; }
 function httpJson(string $url): array {
   $warning = null;
-  $ctx = stream_context_create(['http' => ['timeout' => 12, 'ignore_errors' => true, 'header' => "User-Agent: WeatherClimate/1.0\r\nAccept: application/json\r\n"]]);
+  $ctx = stream_context_create(['http' => ['timeout' => 32, 'ignore_errors' => true, 'header' => "User-Agent: WeatherClimate/1.0\r\nAccept: application/json\r\n"]]);
   set_error_handler(static function(int $severity, string $message) use (&$warning): bool { $warning = $message; return true; });
   try { $raw = file_get_contents($url, false, $ctx); } finally { restore_error_handler(); }
   $status = 0;
